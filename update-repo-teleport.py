@@ -55,10 +55,18 @@ def teleport_signature_verify(config: dict):
         os.remove(config['target_file'])
 
 
+def teleport_file_cleanup(config):
+    print(f'Cleaning up old versions before {config["target_file"]}')
+    for file in Path('/srv/repo/tools/').glob('teleport-*.rpm'):
+        if file.name != Path(config['target_file']).name:
+            os.remove(file)
+
+
 def main():
     config: dict = get_config()
     teleport_file_download(config)
     teleport_signature_verify(config)
+    teleport_file_cleanup(config)
 
 
 if __name__ == '__main__':
