@@ -1,5 +1,6 @@
 import os
 import re
+from sys import exit
 from hashlib import sha256
 from json import loads
 from pathlib import Path
@@ -27,6 +28,7 @@ def get_latest_version() -> str:
 def teleport_file_download(config: dict) -> None:
     if Path(config['target_file']).exists():
         print(f"Latest version already exists: '{config['target_file']}'. Not downloading.")
+        exit(0)
     else:
         print(f'Downloading from {config["download_url"]} to {config["target_file"]}')
         urlretrieve(config["download_url"], config["target_file"])
