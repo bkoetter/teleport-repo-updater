@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.request import urlopen, urlretrieve
 
 
-def get_config():
+def get_config() -> dict:
     download_url: str = f'https://get.gravitational.com/teleport-{get_latest_version()}-1.x86_64.rpm'
     return {
         'download_url': download_url,
@@ -24,7 +24,7 @@ def get_latest_version() -> str:
     return '.'.join(str(n) for n in sorted(versions)[-1])
 
 
-def teleport_file_download(config: dict):
+def teleport_file_download(config: dict) -> None:
     if Path(config['target_file']).exists():
         print(f"Latest version already exists: '{config['target_file']}'. Not downloading.")
     else:
@@ -42,7 +42,7 @@ def get_sha256sum_file(file: str) -> str:
             sha256sum.update(data)
 
 
-def teleport_signature_verify(config: dict):
+def teleport_signature_verify(config: dict) -> None:
     print(f'Comparing signature of {config["target_file"]} with {config["signature_url"]}')
     with urlopen(config['signature_url']) as response:
         sha256sum_teleport = response.read(64).decode("utf-8")
@@ -55,11 +55,22 @@ def teleport_signature_verify(config: dict):
         os.remove(config['target_file'])
 
 
-def teleport_file_cleanup(config):
-    print(f'Cleaning up old versions before {config["target_file"]}')
-    for file in Path('/srv/repo/tools/').glob('teleport-*.rpm'):
+def teleport_file_cleanup(config) -> None:
+    target_dir = Path(config['target_file']).parent
+    file_names = list(target_dir.glob('teleport-*.rpm'))
+    if len(file_names) <= 3:
+        return
+
+    print(f'Cleaning up old versions before {config["target_file"]}. Keeping 3 latest versions.')
+    for file in sorted(file_names)[:-3]:
         if file.name != Path(config['target_file']).name:
-            os.remove(file)
+            print(f'Not deleting downloaded {file}! Inspection required.')
+            continue
+        print(f'Deleting previously downloaded {file}')
+        try:
+            file.unlink()
+        except OSError as e:
+            print(f'Error: {file} : {e.strerror}')
 
 
 def main():
