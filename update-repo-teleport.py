@@ -1,19 +1,21 @@
 import os
 import re
-from sys import exit
 from hashlib import sha256
 from json import loads
 from pathlib import Path
-from typing import List
-from urllib.request import urlopen, urlretrieve
+from sys import exit
 from urllib.error import HTTPError
+from urllib.request import Request, urlopen, urlretrieve
+
+from typing import List
 
 
 def get_config(download_location: str) -> dict:
     download_url: str = f'https://{download_location}/teleport-{get_latest_version()}-1.x86_64.rpm'
+    signature_url: str = f'https://get.gravitational.com/teleport-{get_latest_version()}-1.x86_64.rpm.sha256'
     return {
         'download_url': download_url,
-        'signature_url': download_url + '.sha256',
+        'signature_url': signature_url,
         'target_file': '/srv/repo/tools/' + Path(download_url).name,
     }
 
@@ -54,12 +56,16 @@ def get_sha256sum_file(file: str) -> str:
 def teleport_signature_verify(config: dict) -> None:
     print(f'Comparing signature of {config["target_file"]} with {config["signature_url"]}')
     try:
-        with urlopen(config['signature_url']) as response:
+        req = Request(url=config['signature_url'], headers={'User-Agent': 'Mozilla/5.0'})
+        with urlopen(req) as response:
             sha256sum_teleport = response.read(64).decode("utf-8")
     except HTTPError as e:
         if e.code == 404:
             print(f'Error: Signature file not found: {config["signature_url"]}')
             sha256sum_teleport: str = input('Enter sha256 matching signature from download page: ')
+        else:
+            print(f'Error: Failed to retrieve signature file from {config["signature_url"]}: {e}')
+            cleanup_and_exit(1, config)
 
     sha256sum_dl_file = get_sha256sum_file(config["target_file"])
     if sha256sum_dl_file == sha256sum_teleport:
@@ -87,14 +93,24 @@ def teleport_file_cleanup(config) -> None:
             print(f'Error: {file} : {e.strerror}')
 
 
+def cleanup_and_exit(exit_code: int, config: dict) -> None:
+    # remove downloaded file if it exists
+    try:
+        os.remove(config['target_file'])
+    except OSError as err:
+        print(f'Error: {err.strerror}')
+    finally:
+        exit(exit_code)
+
+
 def main():
-    download_locations: List[str] = ['get.gravitational.com', 'cdn.teleport.dev']
+    download_locations: List[str] = ['cdn.teleport.dev']
     for download_location in download_locations:
         config: dict = get_config(download_location)
         if not teleport_file_download(config):
             continue
         teleport_signature_verify(config)
-        teleport_file_cleanup(config)
+        cleanup_and_exit(1, config)
 
 
 if __name__ == '__main__':
