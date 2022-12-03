@@ -83,10 +83,10 @@ def teleport_file_cleanup(config) -> None:
 
     print(f'Cleaning up old versions before {config["target_file"]}. Keeping 3 latest versions.')
     for file in sorted(file_names)[:-3]:
-        if file.name != Path(config['target_file']).name:
-            print(f'Not deleting downloaded {file}! Inspection required.')
+        if file.name == Path(config['target_file']).name:
+            print(f'Not deleting downloaded file {file}! Inspection required.')
             continue
-        print(f'Deleting previously downloaded {file}')
+        print(f'Deleting previously downloaded file: {file}')
         try:
             file.unlink()
         except OSError as e:
