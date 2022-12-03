@@ -110,7 +110,7 @@ def main():
         if not teleport_file_download(config):
             continue
         teleport_signature_verify(config)
-        cleanup_and_exit(1, config)
+        teleport_file_cleanup(config)
 
 
 if __name__ == '__main__':
