@@ -104,6 +104,10 @@ def cleanup_and_exit(exit_code: int, config: dict) -> None:
 
 
 def main():
+    """
+    Download latest version of Teleport from Gravitational's download page
+    and verify the signature. Remove old versions from the repo.
+    """
     download_locations: List[str] = ['cdn.teleport.dev']
     for download_location in download_locations:
         config: dict = get_config(download_location)
